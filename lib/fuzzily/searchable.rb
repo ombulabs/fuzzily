@@ -53,9 +53,11 @@ module Fuzzily
           matches_for(pattern)
         # Christer 2b) Send limit param along
         # records = _load_for_ids(trigrams.map(&:owner_id))
-        records = _load_for_ids1(trigrams.map(&:owner_id), options[:limit])
+        owner_ids = trigrams.reorder(nil).pluck(:owner_id)
+        records = _load_for_ids1(owner_ids, options[:limit])
         # order records as per trigram query (no portable way to do this in SQL)
-        trigrams.map { |t| records[t.owner_id] }.compact
+        # trigrams.map { |t| records[t.owner_id] }.compact
+        owner_ids.map { |trigram| records[trigram] }.compact
       end
 
       def _load_for_ids(ids)
@@ -73,8 +75,9 @@ module Fuzzily
       def _load_for_ids1(ids, limit)
         {}.tap do |result|
           ids.each{|id|
-            if find_by_id(id).present?
-              result[id] = find_by_id(id)
+            record = find_by_id(id)
+            if record.present?
+              result[id] = record
               break if ((limit-=1) == 0)
             end
           }
